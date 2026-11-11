@@ -563,7 +563,11 @@ with col_right.container(border=True):
         st.info("Chức năng tải file CSV bị khóa cho đến khi toàn bộ chỉ số đạt chuẩn.")
 
 # 8. Module Tích Hợp Gemini AI Lab (Bản chuẩn: Tự khóa vào model sống + In rõ lỗi nếu có)
-FIXED_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6KtNTtna-tsoskXAehqzXmOg5K7Wqy707guy_FkBk4RZQ")
+# Tự động lấy Key từ két sắt Streamlit Secrets (không lo bị Google khóa khi để GitHub Public)
+if "GEMINI_API_KEY" in st.secrets:
+    FIXED_API_KEY = st.secrets["GEMINI_API_KEY"]
+else:
+    FIXED_API_KEY = os.getenv("GEMINI_API_KEY", "AQ.Ab8RN6I_SSQXNBP7J24ykRE7o4-qYzGAEKV7s7pZ4jc384_ntg")
 
 @st.cache_resource
 def get_cached_client():
