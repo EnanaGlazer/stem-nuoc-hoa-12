@@ -617,25 +617,25 @@ def ask_real_gemini_stream(prompt_text, system_instruction=None):
 
     cfg = types.GenerateContentConfig(
         temperature=0.5,
+        max_output_tokens=8192,  # Mở trần tối đa để viết dài thoải mái
         system_instruction=system_instruction,
     )
 
     last_err = None
     for model_name in models_to_try:
         try:
-            stream = client.models.generate_content_stream(
+            # Dùng generate_content lấy trọn vẹn 100% bài viết trước để không bao giờ bị đứt mạng giữa chừng
+            res = client.models.generate_content(
                 model=model_name,
                 contents=prompt_text,
                 config=cfg
             )
-            has_text = False
-            for chunk in stream:
-                if chunk.text:
-                    has_text = True
-                    yield chunk.text
-            if has_text:
-                # Lưu lại tên model chạy thành công để các câu hỏi sau gọi thẳng trong 0.5s
+            if res and res.text:
                 st.session_state["best_working_model"] = model_name
+                # Vẫn tạo hiệu ứng gõ chữ mượt mà ra màn hình
+                for word in res.text.split(" "):
+                    yield word + " "
+                    time.sleep(0.01)
                 return
         except Exception as e:
             last_err = f"[{model_name}]: {e}"
