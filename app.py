@@ -614,8 +614,7 @@ def get_fast_model_list():
         "gemini-3.8-flash",
         "gemini-2.5-flash-lite",
         "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
+        
     ]
     
     # Đưa các model vừa có trong preferred vừa có trong available lên đầu tiên
