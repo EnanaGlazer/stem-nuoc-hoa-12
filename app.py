@@ -13,6 +13,28 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import io
+import re
+try:
+    from gtts import gTTS
+    TTS_READY = True
+except ImportError:
+    TTS_READY = False
+
+def speak_vietnamese(text):
+    """Chuyển văn bản trả lời của AI thành giọng nói tiếng Việt"""
+    if not TTS_READY or not text:
+        return
+    try:
+        # Lọc bỏ các ký hiệu Markdown (*, #, _) để AI đọc mượt tự nhiên
+        clean_text = re.sub(r'[*#_`~>-]', '', text)
+        tts = gTTS(text=clean_text, lang='vi')
+        audio_fp = io.BytesIO()
+        tts.write_to_fp(audio_fp)
+        audio_fp.seek(0)
+        st.audio(audio_fp, format='audio/mp3', autoplay=True)
+    except Exception:
+        pass
 # Thư viện Google GenAI chính thức
 try:
     from google import genai
@@ -709,10 +731,12 @@ with st.container(border=True):
             st.markdown(st.session_state["gemini_analysis_result"])
 
     with tab_chat:
-        col_c1, col_c2 = st.columns([4, 1])
+        col_c1, col_c2, col_c3 = st.columns([2.5, 1.5, 1])
         with col_c1:
-            st.caption("💬 Đặt câu hỏi trực tiếp về công thức, cách pha chế hoặc kiến thức Hóa học 12:")
+            st.caption("💬 Hỏi đáp bằng chữ hoặc bấm Mic nói trực tiếp:")
         with col_c2:
+            enable_tts = st.toggle("🔊 AI đọc giọng nói", value=True)
+        with col_c3:
             if st.button("🗑️ Xóa chat", use_container_width=True):
                 st.session_state.stem_chat_history = []
                 st.rerun()
@@ -720,43 +744,69 @@ with st.container(border=True):
         if "stem_chat_history" not in st.session_state:
             st.session_state.stem_chat_history = []
 
-        # 1. Tạo khung chứa tin nhắn cố định ở TRÊN (có thanh cuộn tự động đẩy tin cũ lên trên)
+        # 1. Khung chứa tin nhắn ở TRÊN
         chat_box = st.container(height=420, border=True)
-
         with chat_box:
             if not st.session_state.stem_chat_history:
-                st.info("👋 Chào bạn! Hãy đặt câu hỏi ở ô bên dưới, mình sẽ giải đáp ngay.")
+                st.info("👋 Chào bạn! Hãy gõ câu hỏi hoặc bấm nút Mic bên dưới để trò chuyện.")
             for msg in st.session_state.stem_chat_history:
                 with st.chat_message(msg["role"]):
                     st.markdown(msg["content"])
 
-        # 2. Ô nhập câu hỏi luôn ghim cố định ở DƯỚI CÙNG
-        user_q = st.chat_input("Nhập câu hỏi bất kỳ của bạn tại đây...")
+        # 2. Thanh công cụ nhập liệu ở DƯỚI CÙNG (Gồm cả Mic thu âm + Ô gõ chữ)
+        voice_audio = st.audio_input("🎙️ Bấm biểu tượng Mic để nói câu hỏi (nói xong bấm dừng):")
+        user_q = st.chat_input("Hoặc nhập câu hỏi bất kỳ của bạn tại đây...")
 
-        # 3. Khi bấm gửi, vẽ tin nhắn mới ngay bên trong khung chat_box ở phía trên
+        sys_instruct = (
+            "Bạn là trợ lý AI chuyên gia trong dự án STEM Hóa học 12 điều chế nước hoa. "
+            "Hãy trả lời trực tiếp, súc tích, dễ hiểu và đúng trọng tâm câu hỏi của người dùng. "
+            f"Thông số công thức hiện tại:\n{formula_context}"
+        )
+
+        # Trường hợp 1: Người dùng gõ chữ
         if user_q:
             st.session_state.stem_chat_history.append({"role": "user", "content": user_q})
-            
             with chat_box:
                 with st.chat_message("user"):
                     st.markdown(user_q)
-
                 with st.chat_message("assistant"):
-                    sys_instruct = (
-                        "Bạn là trợ lý AI chuyên gia trong dự án STEM Hóa học 12 điều chế nước hoa. "
-                        "Hãy trả lời trực tiếp, súc tích, dễ hiểu và đúng trọng tâm câu hỏi của người dùng. "
-                        "Tuyệt đối không trả lời rập khuôn máy móc.\n"
-                        f"Thông số công thức nước hoa hiện tại trên màn hình của người dùng (tham khảo khi câu hỏi có liên quan):\n{formula_context}"
-                    )
-                    
-                    convo_lines = []
-                    for m in st.session_state.stem_chat_history[-10:]:
-                        role_name = "Người dùng" if m["role"] == "user" else "AI"
-                        convo_lines.append(f"{role_name}: {m['content']}")
+                    convo_lines = [f"{'Người dùng' if m['role']=='user' else 'AI'}: {m['content']}" for m in st.session_state.stem_chat_history[-10:]]
                     convo_prompt = "\n\n".join(convo_lines) + "\n\nAI:"
-
                     reply_text = st.write_stream(ask_real_gemini_stream(convo_prompt, system_instruction=sys_instruct))
                     st.session_state.stem_chat_history.append({"role": "assistant", "content": reply_text})
+                    if enable_tts:
+                        speak_vietnamese(reply_text)
+
+        # Trường hợp 2: Người dùng nói vào Mic
+        elif voice_audio is not None:
+            audio_bytes = voice_audio.read()
+            # Tránh xử lý lặp lại cùng 1 file ghi âm khi Streamlit rerun
+            if st.session_state.get("last_audio_bytes") != audio_bytes:
+                st.session_state["last_audio_bytes"] = audio_bytes
+                st.session_state.stem_chat_history.append({"role": "user", "content": "🎙️ *[Đã gửi câu hỏi bằng giọng nói]*"})
+                with chat_box:
+                    with st.chat_message("user"):
+                        st.markdown("🎙️ *[Đã gửi câu hỏi bằng giọng nói]*")
+                    with st.chat_message("assistant"):
+                        try:
+                            client = get_cached_client()
+                            models_to_try = get_fast_model_list()
+                            res = client.models.generate_content(
+                                model=models_to_try[0],
+                                contents=[
+                                    types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav"),
+                                    "Hãy nghe câu hỏi tiếng Việt trong đoạn thu âm này và trả lời ngắn gọn, súc tích."
+                                ],
+                                config=types.GenerateContentConfig(system_instruction=sys_instruct)
+                            )
+                            reply_text = res.text if (res and res.text) else "Mình chưa nghe rõ, bạn nói lại nhé!"
+                        except Exception as e:
+                            reply_text = f"⚠️ Lỗi xử lý âm thanh: {e}"
+                        
+                        st.markdown(reply_text)
+                        st.session_state.stem_chat_history.append({"role": "assistant", "content": reply_text})
+                        if enable_tts:
+                            speak_vietnamese(reply_text)
 
     with tab_view:
         st.code(formula_context, language="markdown")
