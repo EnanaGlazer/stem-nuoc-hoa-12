@@ -368,57 +368,6 @@ st.markdown(f"""
         margin-bottom: 8px !important;
         color: #cbd5e1 !important;
     }}
-   /* Khóa cứng màu chữ sáng & nền tối kể cả khi trình duyệt bật Light Mode */
-    .stApp, .stApp p, .stApp span, .stApp label, .stApp h1, .stApp h2, .stApp h3, .stApp h4, .stApp li, .stMarkdown {{
-        color: #f0f4f8 !important;
-    }}
-
-    /* Ép Sidebar (Bảng điều khiển bên trái) luôn có nền tối */
-    [data-testid="stSidebar"], [data-testid="stSidebar"] > div:first-child {{
-        background-color: #0b131e !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }}
-    [data-testid="stSidebar"] * {{
-        color: #f0f4f8 !important;
-    }}
-
-    /* Ép các ô chọn mùa (Selectbox), ô nhập số (Number input) và nút bấm luôn nền tối chữ trắng */
-    div[data-baseweb="select"] > div,
-    div[data-baseweb="input"] > div,
-    div[data-baseweb="base-input"],
-    input {{
-        background-color: rgba(15, 23, 42, 0.85) !important;
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-        border-color: rgba(255, 255, 255, 0.2) !important;
-    }}
-
-    /* Menu xổ xuống khi bấm chọn mùa */
-    ul[data-baseweb="menu"], li[role="option"] {{
-        background-color: #0f172a !important;
-        color: #ffffff !important;
-    }}
-
-    /* Nút bấm 5ml, 10ml, 20ml, 50ml và nút Xóa chat */
-    .stButton > button {{
-        background-color: rgba(255, 255, 255, 0.08) !important;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.2) !important;
-    }}
-    .stButton > button:hover {{
-        border-color: {theme['accent']} !important;
-        color: {theme['accent']} !important;
-    }}
-
-    /* Khung Chat và ô nhập câu hỏi ở dưới cùng */
-    [data-testid="stChatInput"], [data-testid="stChatInput"] textarea {{
-        background-color: #0f172a !important;
-        color: #ffffff !important;
-        -webkit-text-fill-color: #ffffff !important;
-    }}
-    [data-testid="stChatMessage"] {{
-        background-color: rgba(255, 255, 255, 0.04) !important;
-    }}
 </style>
 """, unsafe_allow_html=True)
 
